@@ -932,6 +932,152 @@ input { font: inherit; color: inherit; }
   100% { opacity: 0; transform: translateY(-60px) scale(1.2); }
 }
 
+
+/* ===== КОЛЕСО ФОРТУНЫ ===== */
+.wheel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.wheel-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.wheel-title {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--color-accent);
+  margin-bottom: var(--space-2);
+  text-align: center;
+  letter-spacing: -0.02em;
+}
+.wheel-sub {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+  text-align: center;
+}
+.wheel-wrapper {
+  position: relative;
+  width: min(320px, 85vw);
+  height: min(320px, 85vw);
+  margin-bottom: var(--space-6);
+}
+.wheel-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(240,165,0,0.3), var(--shadow-lg);
+}
+.wheel-pointer {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 28px solid var(--color-accent);
+  filter: drop-shadow(0 2px 6px rgba(240,165,0,0.6));
+  z-index: 2;
+}
+.wheel-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 44px; height: 44px;
+  background: var(--color-bg);
+  border: 3px solid var(--color-accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  z-index: 2;
+  box-shadow: 0 0 12px rgba(240,165,0,0.4);
+}
+.wheel-spin-btn {
+  padding: var(--space-4) var(--space-10);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-glow);
+  transition: all var(--transition);
+  letter-spacing: -0.01em;
+}
+.wheel-spin-btn:hover { background: var(--color-accent-hover); transform: scale(1.04); }
+.wheel-spin-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* Prize popup */
+.prize-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+.prize-popup.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.prize-emoji {
+  font-size: 5rem;
+  margin-bottom: var(--space-4);
+  animation: prizeAppear 0.6s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes prizeAppear {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+}
+.prize-title {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-3);
+  color: var(--color-accent);
+}
+.prize-desc {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  max-width: 32ch;
+  line-height: 1.6;
+  margin-bottom: var(--space-8);
+}
+.prize-close {
+  padding: var(--space-3) var(--space-8);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.prize-close:hover { background: var(--color-accent-hover); }
+
 /* ===== PWA INSTALL BANNER ===== */
 .install-banner {
   position: fixed;
@@ -1168,6 +1314,27 @@ input { font: inherit; color: inherit; }
 
 <!-- CONFETTI -->
 <div class="confetti-container" id="confettiContainer"></div>
+
+  <!-- КОЛЕСО ФОРТУНЫ -->
+  <div class="wheel-overlay" id="wheelOverlay">
+    <div class="wheel-title">🎡 Колесо Фортуны!</div>
+    <div class="wheel-sub">Ты справился! Крути колесо и получи приз</div>
+    <div class="wheel-wrapper">
+      <div class="wheel-pointer"></div>
+      <canvas class="wheel-canvas" id="wheelCanvas" width="600" height="600"></canvas>
+      <div class="wheel-center">🏆</div>
+    </div>
+    <button class="wheel-spin-btn" id="wheelSpinBtn" onclick="spinWheel()">Крутить!</button>
+  </div>
+
+  <!-- ПРИЗ -->
+  <div class="prize-popup" id="prizePopup">
+    <div class="prize-emoji" id="prizeEmoji">🎉</div>
+    <div class="prize-title" id="prizeTitle">Отличная работа!</div>
+    <div class="prize-desc" id="prizeDesc">Ты настоящий профессионал!</div>
+    <button class="prize-close" onclick="closePrize()">Спасибо! 🙌</button>
+  </div>
+
 <!-- PWA INSTALL BANNER (Android Chrome) -->
 <div class="install-banner" id="installBanner">
   <div class="install-banner-icon">📲</div>
@@ -1586,7 +1753,9 @@ function showCompleteScreen() {
     </div>
   `;
   document.getElementById('completeScreen').classList.add('show');
-  launchConfetti(80);
+  launchConfetti(40);
+  // Show wheel after short delay
+  setTimeout(showWheel, 1200);
 }
 
 // ===== TOAST =====
@@ -1695,6 +1864,196 @@ function renderFilterBtns() {
 
 // ===== START =====
 init();
+
+
+
+// ===== КОЛЕСО ФОРТУНЫ =====
+const WHEEL_SEGMENTS = [
+  // 80% похвала — 8 секторов по 10% каждый
+  { label: 'Молодец!',        emoji: '⭐', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
+  { label: 'Ты лучший!',      emoji: '🔥', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
+  { label: 'Так держать!',    emoji: '💪', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
+  { label: 'Браво!',          emoji: '👏', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
+  { label: 'Отлично!',        emoji: '🌟', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
+  { label: 'Профи!',          emoji: '🎯', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
+  { label: 'Топ менеджер!',   emoji: '🚀', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
+  { label: 'Красавчик!',      emoji: '😎', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
+  // 5% премия 500р
+  { label: 'Премия 500₽',     emoji: '💵', type: 'money',  color: '#7b2d00', textColor: '#ffba08' },
+  // 5% депозит 500р
+  { label: 'Депозит 500₽',    emoji: '💳', type: 'money',  color: '#4a1942', textColor: '#f72585' },
+  // 5% блюдо
+  { label: 'Блюдо до 500₽',   emoji: '🍽️', type: 'gift',   color: '#023e8a', textColor: '#90e0ef' },
+  // 5% напиток
+  { label: 'Напиток в подарок',emoji: '🥂', type: 'gift',   color: '#03045e', textColor: '#caf0f8' },
+];
+
+// Веса для рандома (суммарно 100)
+const WHEEL_WEIGHTS = [10, 10, 10, 10, 10, 10, 10, 10, 5, 5, 5, 5];
+
+const PRIZE_DETAILS = {
+  praise: [
+    { title: 'Отличная работа!', desc: 'Смена прошла на высшем уровне. Ты настоящий профессионал!' },
+    { title: 'Ты лучший!', desc: 'Команда гордится тобой. Продолжай в том же духе!' },
+    { title: 'Браво, менеджер!', desc: 'Каждая смена с тобой — это образцовая работа!' },
+    { title: 'Профессионал!', desc: 'Твой уровень — пример для всей команды. Так держать!' },
+  ],
+  money: {
+    '💵': { title: 'Премия 500 рублей!', desc: 'Поздравляем! Ты получаешь премию 500₽ к следующей выплате. Заслужил!' },
+    '💳': { title: 'Депозит 500 рублей!', desc: 'Поздравляем! 500₽ будут зачислены на твою карту. Ты заработал это!' },
+  },
+  gift: {
+    '🍽️': { title: 'Блюдо в подарок!', desc: 'Выбери любое блюдо до 500₽ — угощение от заведения. Приятного аппетита!' },
+    '🥂': { title: 'Напиток в подарок!', desc: 'Любой напиток за счёт заведения! Ты это заслужил. Приятного!' },
+  },
+};
+
+let wheelAngle = 0;
+let isSpinning = false;
+let wheelDrawn = false;
+
+function getWeightedIndex() {
+  const total = WHEEL_WEIGHTS.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < WHEEL_WEIGHTS.length; i++) {
+    r -= WHEEL_WEIGHTS[i];
+    if (r <= 0) return i;
+  }
+  return 0;
+}
+
+function drawWheel(angle) {
+  const canvas = document.getElementById('wheelCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2, r = W / 2 - 4;
+  const n = WHEEL_SEGMENTS.length;
+  const arc = (Math.PI * 2) / n;
+
+  ctx.clearRect(0, 0, W, H);
+
+  for (let i = 0; i < n; i++) {
+    const seg = WHEEL_SEGMENTS[i];
+    const startAngle = angle + i * arc;
+    const endAngle = startAngle + arc;
+
+    // Sector fill
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Text
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startAngle + arc / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = seg.textColor;
+    ctx.font = 'bold 22px Inter, sans-serif';
+    ctx.fillText(seg.emoji, r - 12, 6);
+    ctx.font = '600 18px Inter, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    const shortLabel = seg.label.length > 12 ? seg.label.slice(0, 11) + '…' : seg.label;
+    ctx.fillText(shortLabel, r - 44, 6);
+    ctx.restore();
+  }
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(240,165,0,0.5)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+function showWheel() {
+  const overlay = document.getElementById('wheelOverlay');
+  if (!overlay) return;
+  overlay.classList.add('show');
+  // Draw wheel on next frame
+  requestAnimationFrame(() => {
+    drawWheel(wheelAngle);
+  });
+}
+
+function spinWheel() {
+  if (isSpinning) return;
+  isSpinning = true;
+  const btn = document.getElementById('wheelSpinBtn');
+  if (btn) btn.disabled = true;
+
+  const winIndex = getWeightedIndex();
+  const n = WHEEL_SEGMENTS.length;
+  const arc = (Math.PI * 2) / n;
+
+  // Calculate target angle so winning segment points UP (pointer at top)
+  // Pointer is at top = -PI/2
+  // We want segment center at -PI/2
+  const segCenter = winIndex * arc + arc / 2;
+  const targetOffset = -Math.PI / 2 - segCenter;
+  const fullSpins = (Math.floor(Math.random() * 5) + 8) * Math.PI * 2;
+  const finalAngle = targetOffset + fullSpins;
+
+  const startAngle = wheelAngle;
+  const duration = 4000 + Math.random() * 1000;
+  const startTime = performance.now();
+
+  function easeOut(t) {
+    return 1 - Math.pow(1 - t, 4);
+  }
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    wheelAngle = startAngle + (finalAngle - startAngle) * easeOut(progress);
+    drawWheel(wheelAngle);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      wheelAngle = startAngle + (finalAngle - startAngle);
+      isSpinning = false;
+      setTimeout(() => showPrize(winIndex), 600);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function showPrize(index) {
+  const seg = WHEEL_SEGMENTS[index];
+  const overlay = document.getElementById('wheelOverlay');
+  const popup = document.getElementById('prizePopup');
+  if (overlay) overlay.classList.remove('show');
+  if (!popup) return;
+
+  let title, desc;
+  if (seg.type === 'praise') {
+    const p = PRIZE_DETAILS.praise[Math.floor(Math.random() * PRIZE_DETAILS.praise.length)];
+    title = p.title; desc = p.desc;
+  } else {
+    const d = PRIZE_DETAILS[seg.type][seg.emoji];
+    title = d ? d.title : seg.label;
+    desc = d ? d.desc : '';
+  }
+
+  document.getElementById('prizeEmoji').textContent = seg.emoji;
+  document.getElementById('prizeTitle').textContent = title;
+  document.getElementById('prizeDesc').textContent = desc;
+  popup.classList.add('show');
+  launchConfetti(60);
+}
+
+function closePrize() {
+  const popup = document.getElementById('prizePopup');
+  if (popup) popup.classList.remove('show');
+  resetAll();
+}
 
 
 // ===== PWA INSTALL =====
