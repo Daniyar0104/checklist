@@ -382,6 +382,28 @@ input { font: inherit; color: inherit; }
 }
 .level-pill .pill-icon { font-size: 12px; }
 
+
+/* ===== MODE TOGGLE ===== */
+.mode-btn {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: all var(--transition);
+  cursor: pointer;
+  text-align: center;
+}
+.mode-btn:hover { color: var(--color-text); background: var(--color-surface-2); }
+.mode-btn.active {
+  background: var(--color-accent-subtle);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
 /* ===== SECTION TABS ===== */
 .section-filter {
   display: flex;
@@ -1023,7 +1045,7 @@ input { font: inherit; color: inherit; }
       </div>
       <div>
         <div class="logo-text">Manager Quest</div>
-        <div class="logo-sub">Открытие заведения</div>
+        <div class="logo-sub" id="logoSub">Открытие заведения</div>
       </div>
     </div>
     <div class="topbar-actions">
@@ -1078,34 +1100,30 @@ input { font: inherit; color: inherit; }
       </div>
     </div>
     <div class="level-pills" id="achievementPills">
-      <div class="level-pill" data-ach="kitchen">🍳 <span class="pill-icon"></span>Кухня</div>
+      <div class="level-pill" data-ach="general">🏠 Общее</div>
       <div class="level-pill" data-ach="hall">🍽️ Зал</div>
-      <div class="level-pill" data-ach="staff">👥 Команда</div>
-      <div class="level-pill" data-ach="security">🔒 Безопасность</div>
-      <div class="level-pill" data-ach="finance">💰 Финансы</div>
-      <div class="level-pill" data-ach="allDone">🏆 Мастер открытия</div>
+      <div class="level-pill" data-ach="waiter">🧑‍🍽️ Официант</div>
+      <div class="level-pill" data-ach="cleaner">🧹 Уборка</div>
+      <div class="level-pill" data-ach="cl_general">🏠 Закрытие</div>
+      <div class="level-pill" data-ach="cl_hall">🌙 Зал закрыт</div>
+      <div class="level-pill" data-ach="allDone">🏆 Смена закрыта</div>
     </div>
   </div>
 
   <!-- SECTION FILTER -->
+  <!-- MODE TOGGLE -->
+  <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">
+    <button class="mode-btn active" id="modeOpen" onclick="setMode('open')">
+      🌅 Открытие
+    </button>
+    <button class="mode-btn" id="modeClose" onclick="setMode('close')">
+      🌙 Закрытие
+    </button>
+  </div>
+
   <div class="section-filter" id="sectionFilter">
     <button class="filter-btn active" data-filter="all">
       <span class="filter-dot"></span> Все
-    </button>
-    <button class="filter-btn" data-filter="kitchen" style="--fc:#e05555">
-      <span class="filter-dot" style="background:#e05555"></span> Кухня
-    </button>
-    <button class="filter-btn" data-filter="hall" style="--fc:#5b9cf6">
-      <span class="filter-dot" style="background:#5b9cf6"></span> Зал
-    </button>
-    <button class="filter-btn" data-filter="staff" style="--fc:#a78bfa">
-      <span class="filter-dot" style="background:#a78bfa"></span> Персонал
-    </button>
-    <button class="filter-btn" data-filter="security" style="--fc:#f0a500">
-      <span class="filter-dot" style="background:#f0a500"></span> Безопасность
-    </button>
-    <button class="filter-btn" data-filter="finance" style="--fc:#4caf80">
-      <span class="filter-dot" style="background:#4caf80"></span> Финансы
     </button>
   </div>
 
@@ -1115,8 +1133,8 @@ input { font: inherit; color: inherit; }
   <!-- COMPLETE SCREEN -->
   <div class="complete-screen" id="completeScreen">
     <div class="complete-trophy">🏆</div>
-    <div class="complete-title">Заведение открыто!</div>
-    <div class="complete-sub">Все задачи выполнены. Смена начата успешно. Отличная работа, менеджер!</div>
+    <div class="complete-title" id="completeTitle">Заведение открыто!</div>
+    <div class="complete-sub" id="completeSub">Все задачи выполнены. Смена начата успешно. Отличная работа, менеджер!</div>
     <div class="complete-stats" id="completeStats"></div>
     <button class="btn-primary" onclick="resetAll()">Начать новую смену</button>
   </div>
@@ -1177,72 +1195,87 @@ input { font: inherit; color: inherit; }
 
 <script>
 // ===== DATA =====
-const SECTIONS = [
+const OPENING_SECTIONS = [
   {
-    id: 'kitchen',
-    title: '🍳 Кухня и производство',
-    color: '#e05555',
+    id: 'general',
+    title: '🏠 Общее',
+    color: '#f0a500',
     tasks: [
-      { id:'k1', title:'Включить холодильное оборудование и проверить температуру', note:'t° холодильника: 0–4°C, морозильника: −18°C', xp:15, priority:'high' },
-      { id:'k2', title:'Проверить наличие и свежесть заготовок', note:'Пометить всё с датой и временем', xp:20, priority:'high' },
-      { id:'k3', title:'Включить и прогреть основное оборудование (плита, фритюр, гриль)', note:'Не менее 15 минут до начала работы', xp:15, priority:'high' },
-      { id:'k4', title:'Проверить наличие инвентаря и кухонных принадлежностей', note:'Ножи, доски, гастроёмкости, плёнка, фольга', xp:10, priority:'med' },
-      { id:'k5', title:'Убедиться в чистоте рабочих поверхностей и оборудования', note:'Сменить салфетки и дезраствор', xp:10, priority:'med' },
-      { id:'k6', title:'Проверить вытяжку и вентиляцию', note:'Включить за 10 минут до начала работ на кухне', xp:8, priority:'low' },
-      { id:'k7', title:'Заказать / подготовить недостающие ингредиенты', note:'Обновить лист stop-list при необходимости', xp:12, priority:'med' },
+      { id:'g1', title:'Выключить охрану', note:'Снять с охраны, подтвердить деактивацию', xp:15, priority:'high' },
+      { id:'g2', title:'Включить вытяжку', note:'Включить за 10 минут до начала работ', xp:10, priority:'high' },
+      { id:'g3', title:'Включить приточку', note:'Проверить работу вентиляции', xp:10, priority:'high' },
+      { id:'g4', title:'Проверить кондиционеры', note:'Комфортная температура +20–22°C', xp:8, priority:'med' },
+      { id:'g5', title:'Открыть смену в iiko', note:'Убедиться что смена открыта корректно', xp:15, priority:'high' },
+      { id:'g6', title:'Проверить деньги в кассе и доложить если нужно', note:'Соответствие разменного фонда плановой сумме', xp:20, priority:'high' },
+      { id:'g7', title:'Включить свет', note:'Все зоны заведения', xp:5, priority:'med' },
     ]
   },
   {
     id: 'hall',
-    title: '🍽️ Зал и сервировка',
+    title: '🍽️ Зал',
     color: '#5b9cf6',
     tasks: [
-      { id:'h1', title:'Проверить чистоту зала, столов и стульев', note:'Влажная уборка всех поверхностей', xp:10, priority:'high' },
-      { id:'h2', title:'Сервировать столы согласно стандарту', note:'Приборы, салфетки, меню, подставки', xp:15, priority:'high' },
-      { id:'h3', title:'Проверить работу кондиционеров / отопления', note:'Комфортная температура +20–22°C', xp:8, priority:'med' },
-      { id:'h4', title:'Включить музыку и настроить освещение', note:'Уровень: фоновый, не перекрывает общение', xp:7, priority:'low' },
-      { id:'h5', title:'Проверить наличие меню (актуальность, чистота)', note:'Убрать повреждённые меню', xp:8, priority:'med' },
-      { id:'h6', title:'Проверить барную стойку: запасы напитков и чистота', note:'Лёд, соки, алкоголь, вода', xp:12, priority:'high' },
-      { id:'h7', title:'Включить и протестировать кассовую систему / POS', note:'Проверить связь с кухней и принтером', xp:15, priority:'high' },
+      { id:'h1', title:'Включить музыку', note:'Уровень: фоновый, не перекрывает общение', xp:7, priority:'low' },
+      { id:'h2', title:'Проверить наличие сотрудников', note:'Все на месте или найти замену', xp:15, priority:'high' },
+      { id:'h3', title:'Отправить стоп-лист до 12:00', note:'Синхронизировать с кухней и системой', xp:12, priority:'high' },
     ]
   },
   {
-    id: 'staff',
-    title: '👥 Персонал',
+    id: 'waiter',
+    title: '🧑‍🍽️ Официант',
     color: '#a78bfa',
     tasks: [
-      { id:'s1', title:'Провести летучку с командой (5 минут)', note:'Спецпредложения, стоп-лист, задачи смены', xp:20, priority:'high' },
-      { id:'s2', title:'Проверить внешний вид и форму сотрудников', note:'Чистая форма, именной бейдж, аккуратный вид', xp:10, priority:'high' },
-      { id:'s3', title:'Распределить зоны ответственности', note:'Кто за каким столиком / зоной', xp:12, priority:'high' },
-      { id:'s4', title:'Убедиться, что все на месте или найти замену', note:'Связаться с заменой при отсутствии более 15 мин', xp:15, priority:'high' },
-      { id:'s5', title:'Проверить санитарные книжки и допуск к работе', note:'Недопуск — до получения документов', xp:8, priority:'med' },
+      { id:'w1', title:'Проверить чистоту и наполняемость столов', note:'Приборы, салфетки, меню, подставки', xp:10, priority:'high' },
+      { id:'w2', title:'Проверить гостевые зоны на чистоту', note:'Все зоны где находятся гости', xp:10, priority:'high' },
+      { id:'w3', title:'Проверить чистоту зеркальных и стеклянных поверхностей', note:'Без разводов и отпечатков', xp:8, priority:'med' },
+      { id:'w4', title:'Проверить чистоту окон', note:'Без пятен и разводов', xp:8, priority:'med' },
     ]
   },
   {
-    id: 'security',
-    title: '🔒 Безопасность',
-    color: '#f0a500',
-    tasks: [
-      { id:'sec1', title:'Проверить работу охранной сигнализации', note:'Снять с охраны, подтвердить деактивацию', xp:15, priority:'high' },
-      { id:'sec2', title:'Проверить работу пожарной системы (индикаторы)', note:'Зелёные огни — норма', xp:12, priority:'high' },
-      { id:'sec3', title:'Проверить аварийные выходы и знаки эвакуации', note:'Выходы не должны быть заблокированы', xp:10, priority:'high' },
-      { id:'sec4', title:'Убедиться в наличии и укомплектованности аптечки', note:'Перекись, бинты, жгут, антисептик', xp:8, priority:'med' },
-      { id:'sec5', title:'Проверить видеонаблюдение и тревожную кнопку', note:'Все камеры в активном режиме', xp:10, priority:'med' },
-    ]
-  },
-  {
-    id: 'finance',
-    title: '💰 Финансы и документы',
+    id: 'cleaner',
+    title: '🧹 Мойщица',
     color: '#4caf80',
     tasks: [
-      { id:'f1', title:'Получить и пересчитать кассу (разменный фонд)', note:'Соответствие фактической суммы плановой', xp:20, priority:'high' },
-      { id:'f2', title:'Проверить корректность Z-отчёта предыдущей смены', note:'Сверить с данными в системе', xp:15, priority:'high' },
-      { id:'f3', title:'Убедиться в наличии расходных материалов (чеки, бумага)', note:'Принтер, терминал', xp:8, priority:'med' },
-      { id:'f4', title:'Внести актуальный стоп-лист в систему', note:'Синхронизировать с кухней', xp:10, priority:'med' },
-      { id:'f5', title:'Подтвердить бронирования на текущий день', note:'Проверить столы, особые пожелания гостей', xp:12, priority:'high' },
+      { id:'c1', title:'Проверить чистоту пола', note:'Все зоны зала и подсобных помещений', xp:10, priority:'high' },
+      { id:'c2', title:'Проверить ковёр на входе', note:'Чистый, ровно лежит', xp:8, priority:'med' },
+      { id:'c3', title:'Проверить туалеты', note:'Чистота, наличие мыла, бумаги, полотенец', xp:12, priority:'high' },
     ]
   }
 ];
+
+const CLOSING_SECTIONS = [
+  {
+    id: 'cl_general',
+    title: '🏠 Общее',
+    color: '#f0a500',
+    tasks: [
+      { id:'cg1', title:'Выключить вытяжку', note:'После завершения всех работ на кухне', xp:10, priority:'high' },
+      { id:'cg2', title:'Выключить приточку', note:'Проверить что система выключена', xp:10, priority:'high' },
+      { id:'cg3', title:'Проверить кондиционеры', note:'Выключить все кондиционеры', xp:8, priority:'med' },
+      { id:'cg4', title:'Закрыть смену в iiko', note:'Снять Z-отчёт, сохранить данные', xp:20, priority:'high' },
+      { id:'cg5', title:'Заполнить оборотный лист', note:'Все данные по выручке и расходам', xp:15, priority:'high' },
+      { id:'cg6', title:'Заполнить транспортные расходы', note:'Все поездки и расходы за смену', xp:10, priority:'med' },
+      { id:'cg7', title:'Заполнить обратную связь', note:'Замечания, предложения по смене', xp:12, priority:'med' },
+    ]
+  },
+  {
+    id: 'cl_hall',
+    title: '🍽️ Зал',
+    color: '#5b9cf6',
+    tasks: [
+      { id:'ch1', title:'Выключить музыку', note:'', xp:5, priority:'low' },
+      { id:'ch2', title:'Выключить свет', note:'Все зоны, кроме аварийного освещения', xp:8, priority:'high' },
+      { id:'ch3', title:'Выключить технику', note:'Телевизоры, декоративные экраны', xp:8, priority:'high' },
+      { id:'ch4', title:'Проверить окна', note:'Все окна закрыты', xp:10, priority:'high' },
+      { id:'ch5', title:'Вынести мусор', note:'Все мусорные вёдра опустошены', xp:10, priority:'high' },
+      { id:'ch6', title:'Поставить терминалы на зарядку', note:'Все платёжные терминалы', xp:8, priority:'med' },
+      { id:'ch7', title:'Поставить часы на зарядку', note:'Все умные часы сотрудников', xp:5, priority:'low' },
+      { id:'ch8', title:'Поставить на зарядку рабочий телефон и планшет', note:'', xp:5, priority:'low' },
+    ]
+  }
+];
+
+let SECTIONS = [...OPENING_SECTIONS];
 
 const LEVELS = [
   { min: 0,   max: 100,  name: 'Новичок',       badge: '🔰', role: '🔰 Новичок' },
@@ -1261,8 +1294,8 @@ let state = {
   timerInterval: null,
 };
 
-const totalTasks = SECTIONS.reduce((a, s) => a + s.tasks.length, 0);
-const totalXP = SECTIONS.reduce((a, s) => s.tasks.reduce((b, t) => b + t.xp, 0) + a, 0);
+function getTotalTasks() { return SECTIONS.reduce((a, s) => a + s.tasks.length, 0); }
+function getTotalXP() { return SECTIONS.reduce((a, s) => s.tasks.reduce((b, t) => b + t.xp, 0) + a, 0); }
 
 // ===== INIT =====
 function init() {
@@ -1271,14 +1304,16 @@ function init() {
   startTimer();
   updateStats();
 
-  // Filter buttons
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderSections(btn.dataset.filter);
-    });
+  // Filter buttons (delegated — they are re-rendered)
+  document.getElementById('sectionFilter').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSections(btn.dataset.filter);
   });
+
+  renderFilterBtns();
 
   // Theme toggle
   document.getElementById('themeToggle').addEventListener('click', () => {
@@ -1386,7 +1421,7 @@ function toggleTask(taskId, evt) {
   updateStats();
   updateSectionProgress();
 
-  if (state.completed.size === totalTasks) {
+  if (state.completed.size === getTotalTasks()) {
     setTimeout(showCompleteScreen, 600);
   }
 }
@@ -1428,7 +1463,7 @@ function updateStats() {
   const level = getLevelForXP(xp);
 
   document.getElementById('statXP').textContent = xp;
-  document.getElementById('statDone').textContent = `${done}/${totalTasks}`;
+  document.getElementById('statDone').textContent = `${done}/${getTotalTasks()}`;
   document.getElementById('playerRole').textContent = level.role;
   document.getElementById('levelBadge').textContent = level.badge;
 
@@ -1441,14 +1476,14 @@ function updateStats() {
   document.getElementById('xpValueLabel').textContent = `${xp} / ${level.max} XP`;
 
   // Summary
-  const totalPct = Math.round((done / totalTasks) * 100);
+  const totalPct = Math.round((done / getTotalTasks()) * 100);
   document.getElementById('summaryPct').textContent = totalPct + '%';
   document.getElementById('summaryFill').style.width = totalPct + '%';
   document.getElementById('summaryLabel').textContent = done === 0
     ? 'Начните отмечать задачи'
-    : done === totalTasks
+    : done === getTotalTasks()
     ? '✓ Все задачи выполнены!'
-    : `Осталось ${totalTasks - done} задач`;
+    : `Осталось ${getTotalTasks() - done} задач`;
 
   // Pulse XP counter
   const xpEl = document.getElementById('statXP');
@@ -1457,7 +1492,7 @@ function updateStats() {
   xpEl.classList.add('xp-pulse');
 
   // All done achievement
-  if (done === totalTasks) {
+  if (done === getTotalTasks()) {
     const pill = document.querySelector('[data-ach="allDone"]');
     if (pill) pill.classList.add('earned');
   }
@@ -1508,8 +1543,8 @@ function expandAll() {
 
 function handleOpenClick() {
   const done = state.completed.size;
-  if (done < totalTasks) {
-    const remaining = totalTasks - done;
+  if (done < getTotalTasks()) {
+    const remaining = getTotalTasks() - done;
     showToast(`Ещё ${remaining} задач!`, 'Выполните все задачи перед открытием', '⚠️');
     return;
   }
@@ -1526,13 +1561,19 @@ function showCompleteScreen() {
   const m = Math.floor(elapsed / 60);
   const s = elapsed % 60;
 
+  const cTitle = document.getElementById('completeTitle');
+  const cSub = document.getElementById('completeSub');
+  if (cTitle) cTitle.textContent = currentMode === 'open' ? 'Заведение открыто! 🚀' : 'Смена закрыта! 🌙';
+  if (cSub) cSub.textContent = currentMode === 'open'
+    ? 'Все задачи выполнены. Смена начата успешно. Отличная работа, менеджер!'
+    : 'Все задачи выполнены. Заведение закрыто. Хорошей ночи, менеджер!';
   document.getElementById('completeStats').innerHTML = `
     <div class="complete-stat">
       <div class="complete-stat-val">${state.xp}</div>
       <div class="complete-stat-label">Всего XP</div>
     </div>
     <div class="complete-stat">
-      <div class="complete-stat-val">${totalTasks}</div>
+      <div class="complete-stat-val">${getTotalTasks()}</div>
       <div class="complete-stat-label">Задач выполнено</div>
     </div>
     <div class="complete-stat">
@@ -1609,6 +1650,47 @@ function resetAll() {
   // Reset filter
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('[data-filter="all"]').classList.add('active');
+}
+
+// ===== MODE =====
+let currentMode = 'open';
+
+function setMode(mode) {
+  currentMode = mode;
+  SECTIONS = mode === 'open' ? [...OPENING_SECTIONS] : [...CLOSING_SECTIONS];
+  // Update mode buttons
+  document.getElementById('modeOpen').classList.toggle('active', mode === 'open');
+  document.getElementById('modeClose').classList.toggle('active', mode === 'close');
+  // Reset completed and XP
+  state.completed = new Set();
+  state.xp = 0;
+  clearInterval(state.timerInterval);
+  startTimer();
+  // Reset achievements
+  document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('earned'));
+  // Re-render
+  renderFilterBtns();
+  document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
+  renderSections('all');
+  updateStats();
+  document.getElementById('completeScreen').classList.remove('show');
+  document.getElementById('checklistContainer').style.display = '';
+  document.getElementById('sectionFilter').style.display = '';
+  document.getElementById('summaryBar').style.display = '';
+  const logoSub = document.getElementById('logoSub');
+  if (logoSub) logoSub.textContent = mode === 'open' ? 'Открытие заведения' : 'Закрытие заведения';
+  // Update open button label
+  const openBtn = document.getElementById('openBtn');
+  if (openBtn) openBtn.textContent = mode === 'open' ? '🚀 Открыть!' : '🌙 Закрыть смену!';
+}
+
+function renderFilterBtns() {
+  const container = document.getElementById('sectionFilter');
+  const btnAll = `<button class="filter-btn active" data-filter="all"><span class="filter-dot"></span> Все</button>`;
+  const secBtns = SECTIONS.map(s =>
+    `<button class="filter-btn" data-filter="${s.id}"><span class="filter-dot" style="background:${s.color}"></span> ${s.title.replace(/^[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]\s*/u,'')}</button>`
+  ).join('');
+  container.innerHTML = btnAll + secBtns;
 }
 
 // ===== START =====
