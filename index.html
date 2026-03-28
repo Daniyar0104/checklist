@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="Manager Quest">
 <meta name="theme-color" content="#0e0f11" id="themeColorMeta">
 <meta name="description" content="Геймифицированный чек-лист открытия заведения для менеджера смены">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Manager Quest — Открытие</title>
 
 <!-- Inline SVG favicon -->
@@ -2161,19 +2164,29 @@ syncThemeColor();
 // Register minimal service worker for offline support (inline via blob)
 if ('serviceWorker' in navigator) {
   const swCode = `
-    const CACHE = 'mq-v1';
+    const CACHE = 'mq-v3';
+    // On install — cache the page
     self.addEventListener('install', e => {
-      e.waitUntil(
-        caches.open(CACHE).then(c => c.addAll([self.location.pathname]))
-      );
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll([self.location.pathname])));
       self.skipWaiting();
     });
+    // On activate — delete ALL old caches
     self.addEventListener('activate', e => {
-      e.waitUntil(clients.claim());
+      e.waitUntil(
+        caches.keys().then(keys =>
+          Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+        ).then(() => clients.claim())
+      );
     });
+    // Network-first: always try network, update cache, fall back to cache only if offline
     self.addEventListener('fetch', e => {
+      if (e.request.method !== 'GET') return;
       e.respondWith(
-        caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match(e.request)))
+        fetch(e.request).then(response => {
+          const clone = response.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return response;
+        }).catch(() => caches.match(e.request))
       );
     });
   `;
