@@ -1459,6 +1459,8 @@ let state = {
   xp: 0,
   startTime: Date.now(),
   timerInterval: null,
+  openDone: false,
+  closeDone: false,
 };
 
 function getTotalTasks() { return SECTIONS.reduce((a, s) => a + s.tasks.length, 0); }
@@ -1531,6 +1533,11 @@ function renderSections(filter) {
       </div>
     `;
     container.appendChild(secEl);
+    // Restore collapse state
+    if (collapsedSections.has(sec.id)) {
+      const body = document.getElementById('body-' + sec.id);
+      if (body) body.classList.add('collapsed');
+    }
   });
 }
 
@@ -1700,9 +1707,18 @@ function updateDate() {
 }
 
 // ===== UI HELPERS =====
+// Track which sections are collapsed
+const collapsedSections = new Set();
+
 function toggleSection(id) {
   const body = document.getElementById('body-' + id);
-  if (body) body.classList.toggle('collapsed');
+  if (!body) return;
+  body.classList.toggle('collapsed');
+  if (body.classList.contains('collapsed')) {
+    collapsedSections.add(id);
+  } else {
+    collapsedSections.delete(id);
+  }
 }
 function expandAll() {
   document.querySelectorAll('.section-body.collapsed').forEach(b => b.classList.remove('collapsed'));
@@ -1754,8 +1770,21 @@ function showCompleteScreen() {
   `;
   document.getElementById('completeScreen').classList.add('show');
   launchConfetti(40);
-  // Show wheel after short delay
-  setTimeout(showWheel, 1200);
+  // Mark current mode as done
+  if (currentMode === 'open') state.openDone = true;
+  if (currentMode === 'close') state.closeDone = true;
+  // Show wheel only after BOTH opening AND closing are complete
+  if (state.openDone && state.closeDone) {
+    setTimeout(showWheel, 1200);
+  } else {
+    // Prompt to switch to other checklist
+    const other = currentMode === 'open' ? 'закрытие' : 'открытие';
+    setTimeout(() => showToast(
+      currentMode === 'open' ? '🌙 Осталось закрытие!' : '🌅 Осталось открытие!',
+      `Заверши чек-лист "${other}" — и получишь приз!`,
+      currentMode === 'open' ? '🌙' : '🌅'
+    ), 800);
+  }
 }
 
 // ===== TOAST =====
@@ -1806,6 +1835,8 @@ function launchConfetti(count = 30) {
 function resetAll() {
   state.completed = new Set();
   state.xp = 0;
+  state.openDone = false;
+  state.closeDone = false;
   clearInterval(state.timerInterval);
   document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('earned'));
   document.getElementById('completeScreen').classList.remove('show');
@@ -1833,6 +1864,7 @@ function setMode(mode) {
   // Reset completed and XP
   state.completed = new Set();
   state.xp = 0;
+  collapsedSections.clear();
   clearInterval(state.timerInterval);
   startTimer();
   // Reset achievements
@@ -1868,43 +1900,44 @@ init();
 
 
 // ===== КОЛЕСО ФОРТУНЫ =====
+// Суммарно 100%:
+// Похвала: 5 секторов × 10% = 50%
+// Призы: 500р=5%, депозит=10%, паста=10%, кофе/лимонад=10%, бургер L=5%, шпатен=10% => 50%
 const WHEEL_SEGMENTS = [
-  // 80% похвала — 8 секторов по 10% каждый
-  { label: 'Молодец!',        emoji: '⭐', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
-  { label: 'Ты лучший!',      emoji: '🔥', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
-  { label: 'Так держать!',    emoji: '💪', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
-  { label: 'Браво!',          emoji: '👏', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
-  { label: 'Отлично!',        emoji: '🌟', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
-  { label: 'Профи!',          emoji: '🎯', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
-  { label: 'Топ менеджер!',   emoji: '🚀', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
-  { label: 'Красавчик!',      emoji: '😎', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
-  // 5% премия 500р
-  { label: 'Премия 500₽',     emoji: '💵', type: 'money',  color: '#7b2d00', textColor: '#ffba08' },
-  // 5% депозит 500р
-  { label: 'Депозит 500₽',    emoji: '💳', type: 'money',  color: '#4a1942', textColor: '#f72585' },
-  // 5% блюдо
-  { label: 'Блюдо до 500₽',   emoji: '🍽️', type: 'gift',   color: '#023e8a', textColor: '#90e0ef' },
-  // 5% напиток
-  { label: 'Напиток в подарок',emoji: '🥂', type: 'gift',   color: '#03045e', textColor: '#caf0f8' },
+  { label: 'Молодец!',       emoji: '⭐', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
+  { label: 'Так держать!',   emoji: '💪', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
+  { label: 'Паста 🍝',       emoji: '🍝', type: 'gift',   color: '#7f4f24', textColor: '#ffe8a1' },
+  { label: 'Ты лучший!',     emoji: '🔥', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
+  { label: 'Депозит 500₽',   emoji: '💳', type: 'money',  color: '#4a1942', textColor: '#f72585' },
+  { label: 'Отлично!',       emoji: '🌟', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
+  { label: 'Кофе/лимонад',   emoji: '☕', type: 'gift',   color: '#023e8a', textColor: '#90e0ef' },
+  { label: 'Топ менеджер!',  emoji: '🚀', type: 'praise', color: '#1b4332', textColor: '#74c69d' },
+  { label: 'Шпатен 0.5',     emoji: '🍺', type: 'gift',   color: '#495057', textColor: '#ffd166' },
+  { label: 'Профи!',         emoji: '🎯', type: 'praise', color: '#2d6a4f', textColor: '#95d5b2' },
+  { label: 'Бургер L',       emoji: '🍔', type: 'gift',   color: '#7b2d00', textColor: '#ffba08' },
+  { label: 'Премия 500₽',    emoji: '💵', type: 'money',  color: '#03045e', textColor: '#caf0f8' },
 ];
 
-// Веса для рандома (суммарно 100)
-const WHEEL_WEIGHTS = [10, 10, 10, 10, 10, 10, 10, 10, 5, 5, 5, 5];
+// Веса для рандома (суммарно 100), порядок как в WHEEL_SEGMENTS
+const WHEEL_WEIGHTS = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 5, 5];
 
 const PRIZE_DETAILS = {
   praise: [
-    { title: 'Отличная работа!', desc: 'Смена прошла на высшем уровне. Ты настоящий профессионал!' },
-    { title: 'Ты лучший!', desc: 'Команда гордится тобой. Продолжай в том же духе!' },
-    { title: 'Браво, менеджер!', desc: 'Каждая смена с тобой — это образцовая работа!' },
-    { title: 'Профессионал!', desc: 'Твой уровень — пример для всей команды. Так держать!' },
+    { title: 'Отличная работа!',  desc: 'Смена прошла на высшем уровне. Ты настоящий профессионал!' },
+    { title: 'Ты лучший!',        desc: 'Команда гордится тобой. Продолжай в том же духе!' },
+    { title: 'Так держать!',      desc: 'Каждая смена с тобой — это образцовая работа!' },
+    { title: 'Топ менеджер!',     desc: 'Твой уровень — пример для всей команды. Молодец!' },
+    { title: 'Профессионал!',     desc: 'Работа выполнена безупречно. Ты делаешь разницу!' },
   ],
   money: {
-    '💵': { title: 'Премия 500 рублей!', desc: 'Поздравляем! Ты получаешь премию 500₽ к следующей выплате. Заслужил!' },
-    '💳': { title: 'Депозит 500 рублей!', desc: 'Поздравляем! 500₽ будут зачислены на твою карту. Ты заработал это!' },
+    '💵': { title: '💵 Премия 500 рублей!',   desc: 'Поздравляем! Ты получаешь премию 500₽ к следующей выплате. Заслужил!' },
+    '💳': { title: '💳 Депозит 500 рублей!',  desc: 'Поздравляем! 500₽ зачисляются на твою карту. Ты это заработал!' },
   },
   gift: {
-    '🍽️': { title: 'Блюдо в подарок!', desc: 'Выбери любое блюдо до 500₽ — угощение от заведения. Приятного аппетита!' },
-    '🥂': { title: 'Напиток в подарок!', desc: 'Любой напиток за счёт заведения! Ты это заслужил. Приятного!' },
+    '🍝': { title: '🍝 Паста в подарок!',        desc: 'Любая паста из меню — угощение от заведения. Приятного аппетита!' },
+    '☕': { title: '☕ Кофе или лимонад!',        desc: 'Любой кофе или лимонад за счёт заведения. Ты это заслужил!' },
+    '🍔': { title: '🍔 Бургер L в подарок!',     desc: 'Бургер L — от нас тебе. Приятного аппетита, менеджер!' },
+    '🍺': { title: '🍺 Шпатен 0.5 в подарок!',  desc: 'Пенное угощение от заведения. Расслабься после отличной смены!' },
   },
 };
 
